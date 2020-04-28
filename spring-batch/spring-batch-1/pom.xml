@@ -19,11 +19,12 @@
 	</properties>
 
 	<dependencies>
+		<!-- Spring Batch dependency -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-batch</artifactId>
 		</dependency>
-
+		<!-- H2 in-memory database -->
 		<dependency>
 			<groupId>com.h2database</groupId>
 			<artifactId>h2</artifactId>
