@@ -1,9 +1,12 @@
-# spring-examples  (DRAFT)
+# spring-examples
 Here you will find various examples in different subfolders
 
 <table>
   <tr>
-    <td><a href="https://github.com/chinmay-anand/spring-mvc-ssl" target="_blank">spring-mvc-ssl</a></td><td>How to implement self-signed SSL with Spring Boot (Java, SSL)</td><td>Status: In Progress</td>
+    <td><a href="https://github.com/chinmay-anand/spring-examples/tree/master/spring-batch" target="_blank">spring-batch</a></td><td>Spring Batch</td><td>Status: Upcoming</td>
+  </tr>
+  <tr>
+    <td><a href="https://github.com/chinmay-anand/table-of-contents" target="_blank">table-of-contents</a></td><td>Index page containing links to rest of the accessible repositories</td><td>Status: In Progress</td>
   </tr>
 </table>
 
