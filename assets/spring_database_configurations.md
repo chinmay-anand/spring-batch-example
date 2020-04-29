@@ -3,10 +3,10 @@
 Look for your database.<br/>Copy the associated settings and <br/>Change them locally to suit your environment.</strong>
 
 <strong>There are two places we need to make the DB specific changes.</strong><br/><br/>
-`pom.xml`
-* Here we need to provide the necessary dependencies so that Spring framework will pull the required jars /drivers etc needed for using the database.
+#### `pom.xml`
+* Here we need to provide the necessary dependencies so that Spring framework will pull the required jars /drivers etc needed for using the database. Refer `https://mvnrepository.com/` for appropriate dependency and its version.
 
-<br/>`application.properties` or `application.yml`
+#### `application.properties` or `application.yml`
 * The database specific connection parameters are specified here to be picked by the Spring Framework for connecting to the database.
 
 Below are the working samples (connectin parametes are purposefully modified - they need to be set as per your environment)
