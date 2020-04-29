@@ -1,6 +1,8 @@
-# Spring Database configurations - DB specific Spring configurations
+# Spring Database Configurations - DB specific settings
 
-There are two places we need to make the DB specific changes.<br/><br/>
+Look for your database.<br/>Copy the associated settings and <br/>Change them locally to suit your environment.</strong>
+
+<strong>There are two places we need to make the DB specific changes.</strong><br/><br/>
 `pom.xml`
 * Here we need to provide the necessary dependencies so that Spring framework will pull the required jars /drivers etc needed for using the database.
 
