@@ -1,4 +1,4 @@
-# Spring DAtabase configurations - DB specific Spring configurations
+# Spring Database configurations - DB specific Spring configurations
 
 There are two places we need to make the DB specific changes.<br/><br/>
 `pom.xml`
