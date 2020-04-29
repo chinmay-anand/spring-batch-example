@@ -31,7 +31,7 @@ public class SpringBatch1Application {
 	
 	@Bean
 	public Step parcelPackingStep() {
-		return this.stepBuilderFactory.get("parcel_packing_step").tasklet(new Tasklet() {
+		return this.stepBuilderFactory.get("2nd_parcel_packing_step").tasklet(new Tasklet() {
 			
 			@Override
 			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
