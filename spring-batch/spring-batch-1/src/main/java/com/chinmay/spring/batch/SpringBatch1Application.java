@@ -23,6 +23,33 @@ public class SpringBatch1Application {
 	
 	@Autowired
 	public StepBuilderFactory stepBuilderFactory;
+
+	@Bean
+	public Step giveParcelToCustomerStep() {
+		return this.stepBuilderFactory.get("give_parcel_to_customer_step.").tasklet(new Tasklet() {
+			
+			@Override
+			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
+				System.out.println("Parcel successfully delivered to customer.");
+				return RepeatStatus.FINISHED;
+			}
+		}).build();
+	}
+	
+	@Bean
+	public Step driveToAddressStep() {
+		
+		boolean GOT_LOST=false;
+		return this.stepBuilderFactory.get("drive_to_address_step").tasklet(new Tasklet() {
+			
+			@Override
+			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
+				if (GOT_LOST) throw new RuntimeException("Got lost while drive to teh address!!!");
+				System.out.println("Successfully arrived at the address.");
+				return RepeatStatus.FINISHED;
+			}
+		}).build();
+	}
 	
 	@Bean
 	public Step parcelPackingStep() {
@@ -51,7 +78,11 @@ public class SpringBatch1Application {
 	
 	@Bean
 	public Job deliveryParcelJob() {
-		return this.jobBuilderFactory.get("delivery_parcel_job").start(parcelPackingStep()).build();
+		return this.jobBuilderFactory.get("delivery_parcel_job")
+				.start(parcelPackingStep())
+				.next(driveToAddressStep())
+				.next(giveParcelToCustomerStep())
+				.build();
 	}
 
 	public static void main(String[] args) {
