@@ -30,10 +30,23 @@ public class SpringBatch1Application {
 			
 			@Override
 			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
-				System.out.println("The parcel has been packed.");
+				String item = chunkContext.getStepContext().getJobParameters().get("item").toString();
+				String date = chunkContext.getStepContext().getJobParameters().get("packing_date").toString();
+				System.out.println(String.format("The %s has been packed on %s.", item, date));
 				return RepeatStatus.FINISHED;
 			}
 		}).build();
+		//If we pass a wrong parameter say "packing_time" instead of "packing_date" we will get NullPointerException as one of the getJobParameters().get methods will fail.
+		/**
+		 * Syntax for stand-alone batch command invocaton:
+		 * 		java -jar target\spring-batch-1-1.0.0.jar "item=box" "packing_date=2020-04-30"
+		 * Next time if we want to test again we need to pass a differrent value for any of the parameters so that a new job will get launched.
+		 * We can specify the data type of a parameter at runtime, for example:
+		 * 		java -jar target\spring-batch-1-1.0.0.jar "item=box" "packing_date(date)=2020/04/30"
+		 * 		As per my machine settings the exception thrown on my machine asked for "yyyy/MM/dd" format of date when I passed "2020-04-30".
+ 		 * 
+		 */
+		
 	}
 	
 	@Bean
