@@ -6,6 +6,7 @@ import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
+import org.springframework.batch.core.job.flow.JobExecutionDecider;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.repeat.RepeatStatus;
@@ -23,6 +24,23 @@ public class SpringBatch1Application {
 	
 	@Autowired
 	public StepBuilderFactory stepBuilderFactory;
+	
+	@Bean
+	public JobExecutionDecider decider() {
+		return new DeliveryDecider();
+	}
+	
+	@Bean
+	public Step leaveAtDoorStep() {
+		return this.stepBuilderFactory.get("leave_at_door_step").tasklet(new Tasklet() {
+			
+			@Override
+			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
+				System.out.println("Leaving the parcel at the door.");
+				return RepeatStatus.FINISHED;
+			}
+		}).build();
+	}
 
 	@Bean
 	public Step giveParcelToCustomerStep() {
@@ -108,7 +126,10 @@ public class SpringBatch1Application {
 				.next(driveToAddressStep())
 					.on("FAILED").to(storePackageStep())  //To reach this failure condition chaange the flag in "driveToAddressStep() to throw exception and fail there.
 				.from(driveToAddressStep())
-					.on("*").to(giveParcelToCustomerStep())
+					.on("*").to(decider())
+						.on("PRESENT").to(giveParcelToCustomerStep())
+					.from(decider())
+						.on("NOT_PRESENT").to(leaveAtDoorStep())
 				.end()
 				.build();
 		/*
