@@ -39,10 +39,13 @@ public class SpringBatch1Application {
 	@Bean
 	public Step driveToAddressStep() {
 		
+		boolean GOT_LOST=false; //Setting this flag causes this step to fail by throwing a RuntimeException
 		return this.stepBuilderFactory.get("drive_to_address_step").tasklet(new Tasklet() {
 			
 			@Override
 			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
+				if (GOT_LOST) throw new RuntimeException("Got lost while drive to teh address!!!");
+				
 				System.out.println("Successfully arrived at the address.");
 				return RepeatStatus.FINISHED;
 			}
@@ -69,7 +72,14 @@ public class SpringBatch1Application {
 		 * We can specify the data type of a parameter at runtime, for example:
 		 * 		java -jar target\spring-batch-1-1.0.0.jar "item=box" "packing_date(date)=2020/04/30"
 		 * 		As per my machine settings the exception thrown on my machine asked for "yyyy/MM/dd" format of date when I passed "2020-04-30".
- 		 * 
+		 * 
+		 * Below three SQLs can be used to validate the status of the steps and jobs 
+		 * 
+		 * SELECT * FROM batch_repo.BATCH_JOB_INSTANCE ORDER BY jOB_INSTANCE_ID desc;
+		 * SELECT * FROM batch_repo.batch_job_execution ORDER BY JOB_EXECUTION_ID desc;
+		 * SELECT * FROM batch_repo.batch_step_execution ORDER BY STEP_EXECUTION_ID desc;
+		 * 
+		 * 
 		 */
 		
 	}
