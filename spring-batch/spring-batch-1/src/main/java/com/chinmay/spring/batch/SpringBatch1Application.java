@@ -26,8 +26,37 @@ public class SpringBatch1Application {
 	public StepBuilderFactory stepBuilderFactory;
 	
 	@Bean
-	public JobExecutionDecider decider() {
+	public JobExecutionDecider correctItemDecider() {
+		return new CorrectItemDecider();
+	}
+	
+	@Bean
+	public JobExecutionDecider deliveryDecider() {
 		return new DeliveryDecider();
+	}
+	
+	@Bean
+	public Step giveRefundStep() {
+		return this.stepBuilderFactory.get("give_refund_step").tasklet(new Tasklet() {
+			
+			@Override
+			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
+				System.out.println("PRocessing refund to the customer as correct item was not delivered.");
+				return RepeatStatus.FINISHED;
+			}
+		}).build();
+	}
+	
+	@Bean
+	public Step thankCustomerStep() {
+		return this.stepBuilderFactory.get("thank_customer_step").tasklet(new Tasklet() {
+			
+			@Override
+			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
+				System.out.println("Thanking customer as corrent item has been delivered.");
+				return RepeatStatus.FINISHED;
+			}
+		}).build();
 	}
 	
 	@Bean
@@ -126,10 +155,12 @@ public class SpringBatch1Application {
 				.next(driveToAddressStep())
 					.on("FAILED").to(storePackageStep())  //To reach this failure condition chaange the flag in "driveToAddressStep() to throw exception and fail there.
 				.from(driveToAddressStep())
-					.on("*").to(decider())
-						.on("PRESENT").to(giveParcelToCustomerStep())
-					.from(decider())
+					.on("*").to(deliveryDecider())
 						.on("NOT_PRESENT").to(leaveAtDoorStep())
+					.from(deliveryDecider())
+						.on("PRESENT").to(giveParcelToCustomerStep())
+							.next(correctItemDecider()).on("CORRECT").to(thankCustomerStep())
+							.from(correctItemDecider()).on("INCORRECT").to(giveRefundStep())
 				.end()
 				.build();
 		/*
