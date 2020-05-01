@@ -30,7 +30,19 @@ public class SpringBatch1Application {
 			
 			@Override
 			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
-				System.out.println("Parcel successfully delivered to customer.");
+				System.out.println("STEP-4:Parcel successfully delivered to customer.");
+				return RepeatStatus.FINISHED;
+			}
+		}).build();
+	}
+
+	@Bean
+	public Step storePackageStep() {
+		return this.stepBuilderFactory.get("store_packae_step").tasklet(new Tasklet() {
+			
+			@Override
+			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
+				System.out.println("STEP-3: Storing the package while customer address is being located");
 				return RepeatStatus.FINISHED;
 			}
 		}).build();
@@ -39,14 +51,14 @@ public class SpringBatch1Application {
 	@Bean
 	public Step driveToAddressStep() {
 		
-		boolean GOT_LOST=false; //Setting this flag causes this step to fail by throwing a RuntimeException
+		boolean GOT_LOST=false; //Setting this flag to "true" causes this step to fail by throwing a RuntimeException
 		return this.stepBuilderFactory.get("drive_to_address_step").tasklet(new Tasklet() {
 			
 			@Override
 			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
 				if (GOT_LOST) throw new RuntimeException("Got lost while drive to teh address!!!");
 				
-				System.out.println("Successfully arrived at the address.");
+				System.out.println("STEP-2: Successfully arrived at the address.");
 				return RepeatStatus.FINISHED;
 			}
 		}).build();
@@ -60,7 +72,7 @@ public class SpringBatch1Application {
 			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
 				String item = chunkContext.getStepContext().getJobParameters().get("item").toString();
 				String date = chunkContext.getStepContext().getJobParameters().get("packing_date").toString();
-				System.out.println(String.format("The %s has been packed on %s.", item, date));
+				System.out.println(String.format("STEP-1: The %s has been packed on %s.", item, date));
 				return RepeatStatus.FINISHED;
 			}
 		}).build();
@@ -79,6 +91,11 @@ public class SpringBatch1Application {
 		 * SELECT * FROM batch_repo.batch_job_execution ORDER BY JOB_EXECUTION_ID desc;
 		 * SELECT * FROM batch_repo.batch_step_execution ORDER BY STEP_EXECUTION_ID desc;
 		 * 
+		 * The powershell script "rerun_delivery_job.ps1" adds current time to the job parameter making it a new job and it gets always called.
+		 * 
+		 * If you want to run without any parameter change invoke "run_delivery_job.ps1", which does nto add any current time param.
+		 * This script "run_delivery_job.ps1" starts from the failed step onwards provided the job execution shows failed status.
+		 *      and job will remain in failed state only if we have not handled failed condition (i.e. on("FAILED") is nto there in the code). 
 		 * 
 		 */
 		
@@ -89,8 +106,18 @@ public class SpringBatch1Application {
 		return this.jobBuilderFactory.get("delivery_parcel_job")
 				.start(parcelPackingStep())
 				.next(driveToAddressStep())
-				.next(giveParcelToCustomerStep())
+					.on("FAILED").to(storePackageStep())  //To reach this failure condition chaange the flag in "driveToAddressStep() to throw exception and fail there.
+				.from(driveToAddressStep())
+					.on("*").to(giveParcelToCustomerStep())
+				.end()
 				.build();
+		/*
+		 * ##//SEQUENTIAL FLOW OF STEPS TO VERiFY RESTARTABLE JOBS
+		return this.jobBuilderFactory.get("delivery_parcel_job")
+				.start(parcelPackingStep())
+				.next(driveToAddressStep())
+				.next(giveParcelToCustomerStep()).build();
+		*/
 	}
 
 	public static void main(String[] args) {
