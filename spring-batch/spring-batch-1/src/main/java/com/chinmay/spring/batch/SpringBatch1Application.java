@@ -103,7 +103,7 @@ public class SpringBatch1Application {
 			
 			@Override
 			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
-				if (GOT_LOST) throw new RuntimeException("Got lost while drive to teh address!!!");
+				if (GOT_LOST) throw new RuntimeException("Got lost while drive to the address!!!");
 				
 				System.out.println("STEP-2: Successfully arrived at the address.");
 				return RepeatStatus.FINISHED;
@@ -138,12 +138,13 @@ public class SpringBatch1Application {
 		 * SELECT * FROM batch_repo.batch_job_execution ORDER BY JOB_EXECUTION_ID desc;
 		 * SELECT * FROM batch_repo.batch_step_execution ORDER BY STEP_EXECUTION_ID desc;
 		 * 
-		 * The powershell script "rerun_delivery_job.ps1" adds current time to the job parameter making it a new job and it gets always called.
-		 * 
-		 * If you want to run without any parameter change invoke "run_delivery_job.ps1", which does nto add any current time param.
-		 * This script "run_delivery_job.ps1" starts from the failed step onwards provided the job execution shows failed status.
-		 *      and job will remain in failed state only if we have not handled failed condition (i.e. on("FAILED") is nto there in the code). 
-		 * 
+		 * The powershell script "run_delivery_job.ps1" allows us to restart a FAILED / STOPPED job as it starts with same parameters with in a day, 
+		 * 	but "rerun_delivery_job.ps1" always starts a new job as it adds a current time parameter which is always different from invocation to invocation. 
+		 *
+		 *	Upon failure
+		 * 		.on("FAILED").to(storePackageStep()) // exits with execution status of Step as ABANDONED and Job as COMPLETED, so that job can not be restarted.
+		 * 		.on("FAILED").stop()) // exits with execution status of Step as FAILED and Job as STOPPED, this job can be restarted.
+		 * 		.on("FAILED").fail()) // exits with execution status of Step as FAILED and Job as FAILED, this job can be restarted. This is a better status indicator
 		 */
 		
 	}
@@ -153,7 +154,7 @@ public class SpringBatch1Application {
 		return this.jobBuilderFactory.get("delivery_parcel_job")
 				.start(parcelPackingStep())
 				.next(driveToAddressStep())
-					.on("FAILED").to(storePackageStep())  //To reach this failure condition chaange the flag in "driveToAddressStep() to throw exception and fail there.
+					.on("FAILED").fail() //stop() //to(storePackageStep())  //To reach this failure condition chaange the flag in "driveToAddressStep() to throw exception and fail there.
 				.from(driveToAddressStep())
 					.on("*").to(deliveryDecider())
 						.on("NOT_PRESENT").to(leaveAtDoorStep())
