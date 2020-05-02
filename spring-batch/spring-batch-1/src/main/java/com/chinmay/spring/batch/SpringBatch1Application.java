@@ -3,6 +3,7 @@ package com.chinmay.spring.batch;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.StepContribution;
+import org.springframework.batch.core.StepExecutionListener;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
@@ -36,6 +37,11 @@ public class SpringBatch1Application {
 	}
 	
 	@Bean
+	public StepExecutionListener selectFlowerStepListener() {
+		return new FlowerSelectionStepExecutionListener();
+	}
+	
+	@Bean
 	public Step selectFlowersStep() {
 		return this.stepBuilderFactory.get("select_flowers_step").tasklet(new Tasklet() {
 			
@@ -44,7 +50,7 @@ public class SpringBatch1Application {
 				System.out.println("Gathering flowers for order.");
 				return RepeatStatus.FINISHED;
 			}
-		}).build();
+		}).listener(selectFlowerStepListener()).build();
 	}
 	
 	@Bean
@@ -53,7 +59,7 @@ public class SpringBatch1Application {
 			
 			@Override
 			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
-				System.out.println("Remove thorns form rosers.");
+				System.out.println("Remove thorns form roses.");
 				return RepeatStatus.FINISHED;
 			}
 		}).build();
@@ -75,7 +81,10 @@ public class SpringBatch1Application {
 	public Job prepareFlowersJob() {
 		return this.jobBuilderFactory.get("prepare_flowers_job")
 					.start(selectFlowersStep())
-					.next(arrangeFlowersStep())
+						.on("TRIM_REQUIRED").to(removeThornsStep()).next(arrangeFlowersStep())
+					.from(selectFlowersStep())
+						.on("NO_TRIM_REQUIRED").to(arrangeFlowersStep())
+					.end()
 					.build();
 	}
 	
