@@ -36,6 +36,50 @@ public class SpringBatch1Application {
 	}
 	
 	@Bean
+	public Step selectFlowersStep() {
+		return this.stepBuilderFactory.get("select_flowers_step").tasklet(new Tasklet() {
+			
+			@Override
+			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
+				System.out.println("Gathering flowers for order.");
+				return RepeatStatus.FINISHED;
+			}
+		}).build();
+	}
+	
+	@Bean
+	public Step removeThornsStep() {
+		return this.stepBuilderFactory.get("remove_thorns_step").tasklet(new Tasklet() {
+			
+			@Override
+			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
+				System.out.println("Remove thorns form rosers.");
+				return RepeatStatus.FINISHED;
+			}
+		}).build();
+	}
+	
+	@Bean
+	public Step arrangeFlowersStep() {
+		return this.stepBuilderFactory.get("arrange_flowers_step").tasklet(new Tasklet() {
+			
+			@Override
+			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
+				System.out.println("Arrange the flowers.");
+				return RepeatStatus.FINISHED;
+			}
+		}).build();
+	}
+
+	@Bean
+	public Job prepareFlowersJob() {
+		return this.jobBuilderFactory.get("prepare_flowers_job")
+					.start(selectFlowersStep())
+					.next(arrangeFlowersStep())
+					.build();
+	}
+	
+	@Bean
 	public Step giveRefundStep() {
 		return this.stepBuilderFactory.get("give_refund_step").tasklet(new Tasklet() {
 			
