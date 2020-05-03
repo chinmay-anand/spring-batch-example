@@ -11,7 +11,9 @@ public class DeliveryDecider implements JobExecutionDecider {
 
 	@Override
 	public FlowExecutionStatus decide(JobExecution jobExecution, StepExecution stepExecution) {
-		String result =  (LocalDateTime.now().getHour() < 12) ? "PRESENT" : "NOT_PRESENT";
+		int currentHour = LocalDateTime.now().getHour();
+		String result = (currentHour > 9 && currentHour < 23) ? "PRESENT" : "NOT_PRESENT";
+		System.out.println("DeliveryDecider: The result is:  " + result +". Current hour is "+ currentHour);
 		return new FlowExecutionStatus(result);
 	}
 

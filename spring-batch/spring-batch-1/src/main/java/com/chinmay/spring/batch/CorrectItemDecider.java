@@ -12,7 +12,7 @@ public class CorrectItemDecider implements JobExecutionDecider {
 	@Override
 	public FlowExecutionStatus decide(JobExecution jobExecution, StepExecution stepExecution) {
 		String result = (new Random().nextFloat() < 0.70f) ? "CORRECT" : "INCORRECT";
-		System.out.print("The item delivered is " + result +"\n");
+		System.out.print("CorrectItemDecider: The item delivered is " + result +"\n");
 		return new FlowExecutionStatus(result);
 	}
 
