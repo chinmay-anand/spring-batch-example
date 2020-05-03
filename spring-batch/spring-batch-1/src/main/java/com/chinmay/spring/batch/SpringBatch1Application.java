@@ -19,6 +19,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.data.redis.RedisProperties.Sentinel;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.task.SimpleAsyncTaskExecutor;
 
 @SpringBootApplication
 @EnableBatchProcessing
@@ -38,6 +39,15 @@ public class SpringBatch1Application {
 	@Bean
 	public JobExecutionDecider deliveryDecider() {
 		return new DeliveryDecider();
+	}
+	
+	@Bean
+	public Flow billingFlow() {
+		/**
+		 * We will use this billingFlow in parallel to deliveryFlow for the delivery_parcel_job.
+		 * We will leave prepare_flowers_job as is to get a comparison. 
+		 */
+		return new FlowBuilder<SimpleFlow>("billing_flow").start(sendInvoiceStep()).build();
 	}
 	
 	@Bean
@@ -88,7 +98,7 @@ public class SpringBatch1Application {
 	}
 	
 	@Bean
-	public Step billingJobStep() {
+	public Step nestedBillingJobStep() {
 		/**
 		 * This is an example of step being prepared from a probably complex job
 		 */
@@ -144,7 +154,7 @@ public class SpringBatch1Application {
 					.from(selectFlowersStep())
 						.on("NO_TRIM_REQUIRED").to(arrangeFlowersStep())
 					.from(arrangeFlowersStep()).on("*").to(deliveryFlow())
-					.next(billingJobStep())
+					.next(nestedBillingJobStep())
 					.end()
 					.build();
 	}
@@ -266,11 +276,17 @@ public class SpringBatch1Application {
 	@Bean
 	public Job deliveryParcelJob() {
 		return this.jobBuilderFactory.get("delivery_parcel_job")
-				.start(parcelPackingStep())
-				.on("*").to(deliveryFlow())
-				.next(billingJobStep())
+				.start(parcelPackingStep()) // 	.on("*").to(deliveryFlow()).next(nestedBillingJobStep())
+				.split(new SimpleAsyncTaskExecutor())
+				.add(deliveryFlow(), billingFlow())       //WHY? drivingToAddressStep is executed before parcelPackingStep WHY?
 				.end()
 				.build();
+		/**
+		 * split() is called after parcelPackingStep(), so deliveryFlwo() or billingFlow() should start after completion of parcelPackignStep
+		 * BUT in console log STEP-1 (parcelPackingStep) was getting printed after STEP-2 (driveToAddressStep from deliverFlow)
+		 * and this is STRANGE, I need to investigate further.
+		 * So parallel flow should be carefully planned, else it may go wrong, beyond being debuggable.
+		 */
 	}
 
 	public static void main(String[] args) {
