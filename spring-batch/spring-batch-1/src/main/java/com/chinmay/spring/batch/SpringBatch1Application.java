@@ -17,6 +17,7 @@ import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.data.redis.RedisProperties.Sentinel;
 import org.springframework.context.annotation.Bean;
 
 @SpringBootApplication
@@ -56,6 +57,42 @@ public class SpringBatch1Application {
 						.next(correctItemDecider()).on("CORRECT").to(thankCustomerStep())
 						.from(correctItemDecider()).on("INCORRECT").to(giveRefundStep())
 			.build();
+	}
+	
+	/**
+	 * Nested Job:
+	 * 1. Define a new step "sendInvoiceStep() and Define a new job "billingJob()" using this step.
+	 * 2. Create a new step out of the billingJob() which can be used inside another preexisting job to introduce the billing funtionality.
+	 * Job in a another Job - hence nested job
+	 * @return
+	 */
+	@Bean
+	public Step sendInvoiceStep() {
+		return this.stepBuilderFactory.get("send_invoice_step").tasklet(new Tasklet() {
+			
+			@Override
+			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
+				System.out.println("Sending the invoice to customer.");
+				return RepeatStatus.FINISHED;
+			}
+		}).build();
+	}
+	
+	@Bean
+	public Job billingJob() {
+		/**
+		 * For our example this is a single step job
+		 * In realtime scenario it can be a complex job with multiple steps and transitions
+		 */
+		return this.jobBuilderFactory.get("billing_job").start(sendInvoiceStep()).build();
+	}
+	
+	@Bean
+	public Step billingJobStep() {
+		/**
+		 * This is an example of step being prepared from a probably complex job
+		 */
+		return this.stepBuilderFactory.get("billing_job_step").job(billingJob()).build();
 	}
 	
 	@Bean
@@ -107,6 +144,7 @@ public class SpringBatch1Application {
 					.from(selectFlowersStep())
 						.on("NO_TRIM_REQUIRED").to(arrangeFlowersStep())
 					.from(arrangeFlowersStep()).on("*").to(deliveryFlow())
+					.next(billingJobStep())
 					.end()
 					.build();
 	}
@@ -230,15 +268,9 @@ public class SpringBatch1Application {
 		return this.jobBuilderFactory.get("delivery_parcel_job")
 				.start(parcelPackingStep())
 				.on("*").to(deliveryFlow())
+				.next(billingJobStep())
 				.end()
 				.build();
-		/*
-		 * ##//SEQUENTIAL FLOW OF STEPS TO VERiFY RESTARTABLE JOBS
-		return this.jobBuilderFactory.get("delivery_parcel_job")
-				.start(parcelPackingStep())
-				.next(driveToAddressStep())
-				.next(giveParcelToCustomerStep()).build();
-		*/
 	}
 
 	public static void main(String[] args) {
