@@ -7,7 +7,10 @@ import org.springframework.batch.core.StepExecutionListener;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
+import org.springframework.batch.core.job.builder.FlowBuilder;
+import org.springframework.batch.core.job.flow.Flow;
 import org.springframework.batch.core.job.flow.JobExecutionDecider;
+import org.springframework.batch.core.job.flow.support.SimpleFlow;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.repeat.RepeatStatus;
@@ -34,6 +37,25 @@ public class SpringBatch1Application {
 	@Bean
 	public JobExecutionDecider deliveryDecider() {
 		return new DeliveryDecider();
+	}
+	
+	@Bean
+	public Flow deliveryFlow() {
+		/**
+		 * Externalize the delivery portion of "delivery_package_job" to reuse in "prepare_flower_job"
+		 * Prune the desired sections from delivery job and use it here in the flow  
+		 */
+		return new FlowBuilder<SimpleFlow>("delivery_flow")
+			.start(driveToAddressStep())
+				.on("FAILED").fail() //stop() //to(storePackageStep())  //To reach this failure condition chaange the flag in "driveToAddressStep() to throw exception and fail there.
+			.from(driveToAddressStep())
+				.on("*").to(deliveryDecider())
+					.on("NOT_PRESENT").to(leaveAtDoorStep())
+				.from(deliveryDecider())
+					.on("PRESENT").to(giveParcelToCustomerStep())
+						.next(correctItemDecider()).on("CORRECT").to(thankCustomerStep())
+						.from(correctItemDecider()).on("INCORRECT").to(giveRefundStep())
+			.build();
 	}
 	
 	@Bean
@@ -84,6 +106,7 @@ public class SpringBatch1Application {
 						.on("TRIM_REQUIRED").to(removeThornsStep()).next(arrangeFlowersStep())
 					.from(selectFlowersStep())
 						.on("NO_TRIM_REQUIRED").to(arrangeFlowersStep())
+					.from(arrangeFlowersStep()).on("*").to(deliveryFlow())
 					.end()
 					.build();
 	}
@@ -206,15 +229,7 @@ public class SpringBatch1Application {
 	public Job deliveryParcelJob() {
 		return this.jobBuilderFactory.get("delivery_parcel_job")
 				.start(parcelPackingStep())
-				.next(driveToAddressStep())
-					.on("FAILED").fail() //stop() //to(storePackageStep())  //To reach this failure condition chaange the flag in "driveToAddressStep() to throw exception and fail there.
-				.from(driveToAddressStep())
-					.on("*").to(deliveryDecider())
-						.on("NOT_PRESENT").to(leaveAtDoorStep())
-					.from(deliveryDecider())
-						.on("PRESENT").to(giveParcelToCustomerStep())
-							.next(correctItemDecider()).on("CORRECT").to(thankCustomerStep())
-							.from(correctItemDecider()).on("INCORRECT").to(giveRefundStep())
+				.on("*").to(deliveryFlow())
 				.end()
 				.build();
 		/*
