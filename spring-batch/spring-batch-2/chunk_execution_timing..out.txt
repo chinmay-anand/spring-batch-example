@@ -1,0 +1,30 @@
+Total time:,	Read/Write/Commit counts:
+
+=============================
+50 items with chunk size of 6
+
+sequential
+234, 50/50/9
+241, 50/50/9
+229, 50/50/9
+
+taskExecutor:
+314, 50/50/13
+326, 50/50/13
+319, 50/50/13
+
+taskExecutor+throttleLimit(6)
+368, 50/50/15
+350, 50/50/15
+350, 50/50/16
+
+Total time: is printed on powershell console
+READ_COUNT, WRITE_COUNT, COMMIT_COUNT are from the table "batch_step_execution"
+Tested at 04-May-2020 13:30
+
+
+Observations:
+* While using taskExecutor noticed that same number was being read multiple times by different threads,
+* All 6 threads (throttlelimit) were invoked only once, and later there were no multiple threads. (Were there locks due to reading of same item by multiple threads?)
+
+REFER: https://docs.spring.io/spring-batch/docs/current/reference/html/scalability.html
