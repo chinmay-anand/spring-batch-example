@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+</head>
+<body>
+<pre>
+
+STEPS:
+
+0. Use input file "shipped_orders.csv" containing orders for a company, with first row as column/header of data.
+
+A. Order.java - new file -- A POJO class with members matching the headers in the "shipped_orders.csv, the list of orders. This class will hold the transient data after we read from CSV till it is written by ItemWriter. Generate getter/setters and toString methods.
+
+B. OrderFieldSetMapper.java new file -- implements mapFieldSet of the interface FieldSetMapper using generic type "Order"
+	override "mapFieldSet()" using read() methods from FieldSet parameter of mapFieldSet() method. Use the column names (csv header) form the token in tokenizer and assign to members of a new Order object and return the order object.
+
+C. Changes to SpringBatch2Application.java -- 
+
+1. Create an instance i.e. tokenizer ("DelimitedLineTokenizer" of generic type "Order")
+	(a) set the names to column names from csv through a string array. Default delimiter is comma (can be changed through constructor parameter).
+
+2. Create an instance of "DefaultLineMapper". 
+	(a) set our tokenizer as the LineTokenizer of the line mapper. 
+	(b)set our OrderFieldSetMapper as the fieldSetMapper of the lineMapper to get the Order object from the parsed data from csv
+	/**
+	 * FlatFIleItemREader uses lineMapper to parse the lines form csv file.
+	 * ... parses the line using the tokenizer
+	 * ... takes parsed tokens and map them to our Order POJO object.
+	 * The tokenizer and fieldsetmapper combination gets an Order object from a row in csv.
+	 */
+3. Instantiate an object of type FlatFileItemReader (instead of SimpleItemReader)
+	(a)set the resource the csv file to read from,
+	(b)set lines to skip from top of the csv file and
+	(c)set the line mapper
+
+</pre>
+</body>
+</html>
