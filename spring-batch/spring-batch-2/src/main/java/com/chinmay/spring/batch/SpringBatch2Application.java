@@ -2,6 +2,8 @@ package com.chinmay.spring.batch;
 
 import java.util.List;
 
+import javax.sql.DataSource;
+
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
@@ -9,6 +11,7 @@ import org.springframework.batch.core.configuration.annotation.JobBuilderFactory
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
+import org.springframework.batch.item.database.builder.JdbcCursorItemReaderBuilder;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.mapping.DefaultLineMapper;
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
@@ -22,7 +25,9 @@ import org.springframework.core.io.FileSystemResource;
 @EnableBatchProcessing
 public class SpringBatch2Application {
 
-	String[] order_columns = new String[] {"order_id", "first_name", "last_name", "email", "cost", "item_id", "item_name", "ship_date"};
+	public static String[] order_columns = new String[] {"order_id", "first_name", "last_name", "email", "cost", "item_id", "item_name", "ship_date"};
+	public static String ORDER_SQL = "SELECT order_id, first_name, last_name, email, cost, item_id, item_name, ship_date\n" + 
+			"FROM shipped_order ORDER BY order_id";
 	
 	@Autowired
 	public JobBuilderFactory jobBuilderFactory;
@@ -30,9 +35,22 @@ public class SpringBatch2Application {
 	@Autowired
 	public StepBuilderFactory stepBuilderFactory;
 	
+	@Autowired
+	public DataSource myDataSource;
+	
+	@Bean
+	public ItemReader<Order> myDatabaseItemReader() {
+		
+		return new JdbcCursorItemReaderBuilder<Order>()
+				.dataSource(myDataSource)
+				.name("jdbc_cursor_item_reader")
+				.sql(ORDER_SQL)
+				.rowMapper(new OrderRowMapper())
+				.build();
+	}
+	
 	@Bean
 	public ItemReader<Order> myCsvItemReader() {
-		//return new MyItemReader();
 		
 		//......................
 		//Define the tokenizer, (a)set column names (same as the column names from the csv file)
@@ -66,7 +84,7 @@ public class SpringBatch2Application {
 	public Step chunkBasedStep() {
 		return this.stepBuilderFactory.get("chunk_based_step")
 				.<Order, Order>chunk(3)
-				.reader(myCsvItemReader())
+				.reader(myDatabaseItemReader())   //.reader(myCsvItemReader())
 				.writer(new ItemWriter<Order>() {
 
 					@Override
