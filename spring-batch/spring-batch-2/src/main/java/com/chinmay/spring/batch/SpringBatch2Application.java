@@ -11,7 +11,9 @@ import org.springframework.batch.core.configuration.annotation.JobBuilderFactory
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
-import org.springframework.batch.item.database.builder.JdbcCursorItemReaderBuilder;
+import org.springframework.batch.item.database.PagingQueryProvider;
+import org.springframework.batch.item.database.builder.JdbcPagingItemReaderBuilder;
+import org.springframework.batch.item.database.support.SqlPagingQueryProviderFactoryBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -35,19 +37,30 @@ public class SpringBatch2Application {
 	public DataSource myDataSource;
 	
 	@Bean
-	public ItemReader<Order> itemReader() {
+	public PagingQueryProvider myPagingQueryProvider() throws Exception {
+		SqlPagingQueryProviderFactoryBean factory = new SqlPagingQueryProviderFactoryBean();
+		factory.setSelectClause("SELECT order_id, first_name, last_name, email, cost, item_id, item_name, ship_date");
+		factory.setFromClause("FROM shipped_order");
+		factory.setSortKey("order_id");
+		factory.setDataSource(myDataSource);
+		return factory.getObject();
+	}
+	
+	@Bean
+	public ItemReader<Order> itemReader() throws Exception {
 		
-		return new JdbcCursorItemReaderBuilder<Order>()
+		return new JdbcPagingItemReaderBuilder<Order>()
 				.dataSource(myDataSource)
-				.name("jdbc_cursor_item_reader")
-				.sql(ORDER_SQL)
+				.name("jdbc_paging_item_reader")
+				.queryProvider(myPagingQueryProvider())
 				.rowMapper(new OrderRowMapper())
+				.pageSize(10)
 				.build();
 	}
 	
 	@Bean
-	public Step chunkBasedStep() {
-		return this.stepBuilderFactory.get("chunk_based_db_one_step")
+	public Step chunkBasedStep() throws Exception {
+		return this.stepBuilderFactory.get("chunk_based_db_multi_step")
 				.<Order, Order>chunk(10)
 				.reader(itemReader())
 				.writer(new ItemWriter<Order>() {
@@ -63,7 +76,7 @@ public class SpringBatch2Application {
 				.build();
 	}
 	
-	@Bean Job chunkBasedJob() {
+	@Bean Job chunkBasedJob() throws Exception {
 		return this.jobBuilderFactory.get("chunk_based_job").start(chunkBasedStep()).build();
 	}
 	
