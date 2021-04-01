@@ -1,4 +1,4 @@
-# spring-examples
+# spring-batch-example
 Here you will find various examples in different subfolders
 
 <table>
